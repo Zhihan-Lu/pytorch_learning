@@ -1,0 +1,117 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: CPU Unit Test CI
+
+on:
+  push:
+    branches:
+      # only run tests on main branch & nightly; release should be triggered manually
+      - nightly
+      - main
+    paths-ignore:
+      - "docs/*"
+      - "third_party/*"
+      - .gitignore
+      - "*.md"
+  pull_request:
+    paths-ignore:
+      - "docs/*"
+      - "third_party/*"
+      - .gitignore
+      - "*.md"
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Channel to use for torch and fbgemm"
+        required: true
+        type: choice
+        options:
+          - release
+          - nightly
+          - test
+
+jobs:
+  build_test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - linux.2xlarge
+        python:
+          - version: "3.10"
+            tag: "py310"
+          - version: "3.11"
+            tag: "py311"
+          - version: "3.12"
+            tag: "py312"
+          - version: "3.13"
+            tag: "py313"
+        is_pr:
+          - ${{ github.event_name == 'pull_request' }}
+        exclude:
+          - is_pr: true
+            python:
+              version: "3.10"
+          - is_pr: true
+            python:
+              version: "3.11"
+          - is_pr: true
+            python:
+              version: "3.12"
+    uses: pytorch/test-infra/.github/workflows/linux_job_v2.yml@main
+    permissions:
+      id-token: write
+      contents: read
+    with:
+      runner: ${{ matrix.os }}
+      timeout: 15
+      script: |
+        ldd --version
+        conda create -y --name build_binary python=${{ matrix.python.version }}
+        conda info
+        python --version
+        conda run -n build_binary python --version
+        if [[ "${{ inputs.channel }}" = "release" ]]; then
+          index_url=https://download.pytorch.org/whl/cpu
+        elif [ -z "${{ inputs.channel }}" ]; then
+          index_url=https://download.pytorch.org/whl/nightly/cpu
+        else
+          index_url=https://download.pytorch.org/whl/${{ inputs.channel }}/cpu
+        fi
+        echo "index_url: $index_url"
+        conda run -n build_binary \
+          pip install torch --index-url $index_url
+        conda run -n build_binary \
+          python -c "import torch; print(torch.__version__)"
+        echo "torch succeeded"
+        conda run -n build_binary \
+          python -c "import torch.distributed"
+        conda run -n build_binary \
+          pip install fbgemm-gpu --index-url $index_url
+        conda run -n build_binary \
+          python -c "import fbgemm_gpu; print(fbgemm_gpu.__version__)"
+        echo "fbgemm_gpu succeeded"
+        conda run -n build_binary \
+          pip install -r requirements.txt
+        conda run -n build_binary \
+          python setup.py bdist_wheel \
+          --python-tag=${{ matrix.python.tag }}
+        conda run -n build_binary \
+          python -c "import torchrec"
+        echo "torch.distributed succeeded"
+        conda run -n build_binary \
+          python -c "import numpy"
+        echo "numpy succeeded"
+        conda install -n build_binary -y pytest
+        # Read the list of tests to skip from a file, ignoring empty lines and comments
+        skip_expression=$(awk '!/^($|#)/ {printf " and not %s", $0}' ./.github/scripts/tests_to_skip.txt)
+        # Check if skip_expression is effectively empty
+        if [ -z "$skip_expression" ]; then
+          skip_expression=""
+        else
+          skip_expression=${skip_expression:5}  # Remove the leading " and "
+        fi
+        conda run -n build_binary \
+          python -m pytest torchrec -v -s -W ignore::pytest.PytestCollectionWarning --continue-on-collection-errors \
+          --ignore-glob=**/test_utils/ -k "$skip_expression"

@@ -1,0 +1,30 @@
+name: pre-commit
+
+on:
+  push:
+    branches:
+      # only run tests on main branch & nightly; release should be triggered manually
+      - nightly
+      - main
+    tags:
+      # Release candidate tags look like: v1.11.0-rc1
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+  pull_request:
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.9
+          architecture: x64
+          packages: |
+            ufmt==2.5.1
+            black==24.2.0
+            usort==1.0.8
+      - name: Checkout Torchrec
+        uses: actions/checkout@v4
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
