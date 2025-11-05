@@ -40,7 +40,7 @@ def torch_arange(end: int, device: torch.device) -> torch.Tensor:
 def _get_col_indices(
     max_seq_len: int,
     max_contextual_seq_len: int,
-    max_pos_ind: int,
+    max_pos_ind: int, # num_position_buckets = 8192
     seq_lengths: torch.Tensor,
     num_targets: Optional[torch.Tensor],
     interleave_targets: bool,
@@ -53,13 +53,13 @@ def _get_col_indices(
         if interleave_targets:
             high_inds = seq_lengths - fx_unwrap_optional_tensor(num_targets) * 2
         else:
-            high_inds = seq_lengths - fx_unwrap_optional_tensor(num_targets)
+            high_inds = seq_lengths - fx_unwrap_optional_tensor(num_targets) # [B, 1]
         col_indices = torch.clamp(col_indices, max=high_inds.view(-1, 1))
         col_indices = high_inds.view(-1, 1) - col_indices
     else:
         col_indices = seq_lengths.view(-1, 1) - col_indices
     col_indices = col_indices + max_contextual_seq_len
-    col_indices = torch.clamp(col_indices, max=max_pos_ind - 1)
+    col_indices = torch.clamp(col_indices, max=max_pos_ind - 1) 
     if max_contextual_seq_len > 0:
         col_indices[:, :max_contextual_seq_len] = torch.arange(
             0,
@@ -83,7 +83,7 @@ def pytorch_add_timestamp_positional_embeddings(
     interleave_targets: bool,
     time_bucket_fn: str,
 ) -> torch.Tensor:
-    max_pos_ind = pos_embeddings.size(0)
+    max_pos_ind = pos_embeddings.size(0) # num_position_buckets = 8192
     # position encoding
     pos_inds = _get_col_indices(
         max_seq_len=max_seq_len,
@@ -95,7 +95,7 @@ def pytorch_add_timestamp_positional_embeddings(
     )
     B, _ = pos_inds.shape
     # timestamp encoding
-    num_time_buckets = ts_embeddings.size(1) - 1
+    num_time_buckets = ts_embeddings.size(0) - 1
     time_bucket_increments = 60.0
     time_bucket_divisor = 1.0
     time_delta = 0

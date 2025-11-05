@@ -27,23 +27,23 @@ from generative_recommenders.ops.position import add_timestamp_positional_embedd
 class HSTUPositionalEncoder(HammerModule):
     def __init__(
         self,
-        num_position_buckets: int,
-        num_time_buckets: int,
-        embedding_dim: int,
-        contextual_seq_len: int,
+        num_position_buckets: int, # 8192
+        num_time_buckets: int, # 2048
+        embedding_dim: int, # 512
+        contextual_seq_len: int, # 6
         is_inference: bool = True,
     ) -> None:
         super().__init__(is_inference=is_inference)
-        self._embedding_dim: int = embedding_dim
-        self._contextual_seq_len: int = contextual_seq_len
+        self._embedding_dim: int = embedding_dim # 512
+        self._contextual_seq_len: int = contextual_seq_len # 6
         self._position_embeddings_weight: torch.nn.Parameter = torch.nn.Parameter(
-            torch.empty(num_position_buckets, embedding_dim).uniform_(
+            torch.empty(num_position_buckets, embedding_dim).uniform_( # [8192, 512]
                 -sqrt(1.0 / num_position_buckets),
                 sqrt(1.0 / num_position_buckets),
             ),
         )
         self._timestamp_embeddings_weight: torch.nn.Parameter = torch.nn.Parameter(
-            torch.empty(num_time_buckets + 1, embedding_dim).uniform_(
+            torch.empty(num_time_buckets + 1, embedding_dim).uniform_( # [2049, 512]
                 -sqrt(1.0 / num_time_buckets),
                 sqrt(1.0 / num_time_buckets),
             ),

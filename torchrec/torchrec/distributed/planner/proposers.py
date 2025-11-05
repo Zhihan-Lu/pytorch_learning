@@ -245,12 +245,14 @@ class GridSearchProposer(Proposer):
                 f"Max proposals allowed: {self._max_proposals}\n"
             )
             return
+        # Example result: [range(0, 2), range(0, 3)] for 2 FQNs with 2 and 3 options
         sharding_options_by_fqn_indices = [
             range(len(sharding_options))
             for sharding_options in self._sharding_options_by_fqn.values()
         ]
         # pyre-fixme[8]: Attribute has type `List[List[int]]`; used as
         #  `List[Tuple[int]]`.
+        # Example result: [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2)] for 2 FQNs with 2 and 3 options
         self._proposals = list(itertools.product(*sharding_options_by_fqn_indices))
 
     def _reset(self) -> None:

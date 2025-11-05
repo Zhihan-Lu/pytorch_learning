@@ -20,6 +20,12 @@ logging.basicConfig(level=logging.INFO)
 import os
 import sys
 
+# Add parent directory to Python path to allow imports
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(script_dir, "../../../"))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 import traceback
 
 import gin
@@ -58,7 +64,7 @@ def _main_func(
     gin_file: str,
     mode: str,
 ) -> None:
-    device = torch.device(f"cuda:{rank}")
+    device = torch.device(f"cuda:{rank}") if rank < torch.cuda.device_count() else torch.device("cpu")
     logger.info(f"rank: {rank}, world_size: {world_size}, device: {device}")
     setup(
         rank=rank,
@@ -75,7 +81,10 @@ def _main_func(
     train_dataloader, test_dataloader = make_train_test_dataloaders(
         hstu_config=model_configs,
         embedding_table_configs=embedding_table_configs,
-    )
+    ) 
+    # output of the loaders: 
+    # uih_feature_kjt with hstu_uih_feature_names, 
+    # candidates_feature_kjt with hstu_candidate_feature_names
     metrics = MetricsLogger(
         multitask_configs=model_configs.multitask_configs,
         batch_size=train_dataloader.batch_size,

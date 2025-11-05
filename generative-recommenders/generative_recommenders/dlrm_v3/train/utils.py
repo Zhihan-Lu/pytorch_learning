@@ -75,20 +75,25 @@ def setup(
     os.environ["MASTER_ADDR"] = "localhost"
     os.environ["MASTER_PORT"] = str(master_port)
 
-    BACKEND = dist.Backend.NCCL
+    if device.type == "cuda":
+        BACKEND = dist.Backend.NCCL
+    else:
+        BACKEND = dist.Backend.GLOO
     TIMEOUT = 1800
 
     # initialize the process group
     if not dist.is_initialized():
-        dist.init_process_group("nccl", rank=rank, world_size=world_size)
+        dist.init_process_group(backend=BACKEND, rank=rank, world_size=world_size) # create a default group
 
     pg = dist.new_group(
         backend=BACKEND,
         timeout=timedelta(seconds=TIMEOUT),
-    )
+    ) # all processes enter this function 
 
     # set device
-    torch.cuda.set_device(device)
+    if device.type == "cuda":
+        torch.cuda.set_device(device)
+    # For CPU devices, no explicit device setting is needed in PyTorch
 
     return pg
 
@@ -332,7 +337,7 @@ def train_loop(
 ) -> None:
     model.train()
     batch_idx: int = 0
-    profiler = Profiler(rank, active=10) if output_trace else None
+    profiler = Profiler(rank, active=2) if output_trace else None
 
     for _ in range(num_epochs):
         for sample in dataloader:
@@ -390,7 +395,7 @@ def eval_loop(
 ) -> None:
     model.eval()
     batch_idx: int = 0
-    profiler = Profiler(rank, active=10) if output_trace else None
+    profiler = Profiler(rank, active=2) if output_trace else None
     metric_logger.reset(mode="eval")
     for sample in dataloader:
         sample.to(device)
@@ -437,7 +442,7 @@ def train_eval_loop(
     eval_frequency: int = 1,
     # lr_scheduler: to-do: Add a scheduler
 ) -> None:
-    profiler = Profiler(rank, active=10) if output_trace else None
+    profiler = Profiler(rank, active=2) if output_trace else None
 
     for epoch in range(num_epochs):
         if train_dataloader is not None:

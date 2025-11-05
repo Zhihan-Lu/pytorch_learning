@@ -69,7 +69,13 @@ def _on_trace_ready_fn(
         logger.warning(
             f"trace url: https://www.internalfb.com/intern/perfdoctor/trace_view?filepath={target_object_name}&bucket={bucket_name}"
         )
-        p.export_chrome_trace(path)
+        # Save locally if output directory specified
+        local_output_dir = "/root/generative-recommenders/profiler"
+        os.makedirs(local_output_dir, exist_ok=True)
+        local_path = os.path.join(local_output_dir, file_name)
+        p.export_chrome_trace(local_path)
+        logger.warning(f"Local trace saved to: {local_path}")
+        logger.warning(f"View in Chrome: chrome://tracing -> Load -> {local_path}")        
 
     return handle_fn
 
@@ -88,12 +94,12 @@ def profiler_or_nullcontext(enabled: bool, with_stack: bool):
 
 
 class Profiler:
-    def __init__(self, rank, active: int = 50) -> None:
+    def __init__(self, rank, active: int = 2) -> None:
         self.rank = rank
         self._profiler: profiler.profile = torch.profiler.profile(
             schedule=torch.profiler.schedule(
-                wait=10,
-                warmup=20,
+                wait=2,
+                warmup=2,
                 active=active,
                 repeat=1,
             ),
@@ -305,5 +311,8 @@ def get_dataset(name: str, new_path_prefix: str = ""):
                 "seq_logs_file": os.path.join(
                     new_path_prefix, "data/KuaiRand-1K/data/processed_seqs.csv"
                 ),
+                # format
+                # user_id, video_id, time_ms, action_weights, play_time_ms, duration_ms ...
+                # 123456, [1,2,3],[4,5,6],[1011,0110,...]...
             },
         )

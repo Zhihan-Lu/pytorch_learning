@@ -27,9 +27,9 @@ from generative_recommenders.ops.jagged_tensors import concat_2D_jagged
 class ActionEncoder(HammerModule):
     def __init__(
         self,
-        action_embedding_dim: int,
-        action_feature_name: str,
-        action_weights: List[int],
+        action_embedding_dim: int, # 8
+        action_feature_name: str, # "action_weight"
+        action_weights: List[int], # [1, 2, 4, 8, 16, 32, 64, 128]
         watchtime_feature_name: str = "",
         watchtime_to_action_thresholds_and_weights: Optional[
             List[Tuple[int, int]]
@@ -53,18 +53,18 @@ class ActionEncoder(HammerModule):
         )
         self._num_action_types: int = len(action_weights) + len(
             self._watchtime_to_action_thresholds_and_weights
-        )
-        self._action_embedding_dim = action_embedding_dim
+        ) # 8
+        self._action_embedding_dim = action_embedding_dim # 8
         self._action_embedding_table: torch.nn.Parameter = torch.nn.Parameter(
             torch.empty((self._num_action_types, action_embedding_dim)).normal_(
                 mean=0, std=0.1
             ),
-        )
+        ) # [8, 8]
         self._target_action_embedding_table: torch.nn.Parameter = torch.nn.Parameter(
             torch.empty((1, self._num_action_types * action_embedding_dim)).normal_(
                 mean=0, std=0.1
             ),
-        )
+        ) # (1, 8 * 8)
 
     @property
     def output_embedding_dim(self) -> int:
@@ -91,10 +91,10 @@ class ActionEncoder(HammerModule):
                 seq_actions.unsqueeze(-1), self._combined_action_weights.unsqueeze(0)
             )
             > 0
-        )
+        ) # [3, 5] x [1, 2, 4] -> [[T, T, F], [T, F, T]] (N, 8)
         action_embeddings = (
-            exploded_actions.unsqueeze(-1) * self._action_embedding_table.unsqueeze(0)
-        ).view(-1, self._num_action_types * self._action_embedding_dim)
+            exploded_actions.unsqueeze(-1) * self._action_embedding_table.unsqueeze(0) # (N, 8, 8)
+        ).view(-1, self._num_action_types * self._action_embedding_dim) # (N, 8 * 8)
         total_targets: int = seq_embeddings.size(0) - action_embeddings.size(0)
         action_embeddings = concat_2D_jagged(
             max_seq_len=max_uih_len + max_targets,
@@ -102,7 +102,7 @@ class ActionEncoder(HammerModule):
             values_right=self._target_action_embedding_table.tile(
                 total_targets,
                 1,
-            ),
+            ), # (total_targets, 8 * 8)
             max_len_left=max_uih_len,
             max_len_right=max_targets,
             offsets_left=uih_offsets,

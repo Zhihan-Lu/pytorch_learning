@@ -60,7 +60,7 @@ class DLRMv3KuaiRandDataset(DLRMv3RandomDataset):
             )
 
     def get_item_count(self):
-        return len(self.seq_logs_frame)
+        return len(self.seq_logs_frame) # number of samples/users
 
     def unload_query_samples(self, sample_list):
         self.items_in_memory = {}

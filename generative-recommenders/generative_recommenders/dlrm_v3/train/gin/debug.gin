@@ -27,7 +27,7 @@ make_train_test_dataloaders.train_split_percentage = 0.75
 
 # train loop variables
 train_loop.num_batches = 10
-train_loop.num_epochs = 1000
+train_loop.num_epochs = 2
 train_loop.output_trace = True
 train_loop.metric_log_frequency = 10
 

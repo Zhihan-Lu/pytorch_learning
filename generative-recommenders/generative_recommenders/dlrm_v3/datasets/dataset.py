@@ -180,9 +180,9 @@ class DLRMv3RandomDataset(Dataset):
             hstu_config=hstu_config,
         )
         self.hstu_config: DlrmHSTUConfig = hstu_config
-        self._max_num_candidates: int = hstu_config.max_num_candidates
+        self._max_num_candidates: int = hstu_config.max_num_candidates # 10
         self._max_num_candidates_inference: int = (
-            hstu_config.max_num_candidates_inference
+            hstu_config.max_num_candidates_inference # 5
         )
         self._max_seq_len: int = hstu_config.max_seq_len
         self._uih_keys: List[str] = hstu_config.hstu_uih_feature_names
@@ -191,8 +191,8 @@ class DLRMv3RandomDataset(Dataset):
             hstu_config.contextual_feature_to_max_length
         )
         self._max_uih_len: int = (
-            self._max_seq_len
-            - self._max_num_candidates
+            self._max_seq_len # 16384
+            - self._max_num_candidates # 10
             - (
                 len(self._contextual_feature_to_max_length)
                 if self._contextual_feature_to_max_length

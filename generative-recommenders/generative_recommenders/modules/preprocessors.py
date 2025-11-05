@@ -176,7 +176,7 @@ class ContextualPreprocessor(InputPreprocessor):
             )
             self._action_embedding_mlp: torch.nn.Module = torch.nn.Sequential(
                 torch.nn.Linear(
-                    in_features=self._action_encoder.output_embedding_dim,
+                    in_features=self._action_encoder.output_embedding_dim, # 8 * 8
                     out_features=self._hidden_dim,
                 ),
                 SwishLayerNorm(self._hidden_dim),
@@ -222,7 +222,7 @@ class ContextualPreprocessor(InputPreprocessor):
                 target_offsets=target_offsets,
                 seq_embeddings=seq_embeddings,
                 seq_payloads=seq_payloads,
-            )
+            ) # (N, 8 * 8)
             output_seq_embeddings = output_seq_embeddings + self._action_embedding_mlp(
                 action_embeddings
             )

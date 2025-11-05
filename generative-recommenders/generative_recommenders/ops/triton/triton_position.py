@@ -62,8 +62,8 @@ def _autotune_configs() -> List[triton.Config]:
 @triton.jit
 def _add_timestamp_position_embeddings_kernel(
     SeqEmb,
-    Offsets,
-    Lengths,
+    Offsets, # [B + 1]
+    Lengths, # [B]
     PosEmb,
     TsEmb,
     Out,
@@ -97,8 +97,8 @@ def _add_timestamp_position_embeddings_kernel(
     Out has shape (sum_B(N_i), D)
     """
 
-    off_b = tl.program_id(0)
-    off_n = tl.program_id(1)
+    off_b = tl.program_id(0) # each process one user/sample in batch
+    off_n = tl.program_id(1) # each process BLOCK_N positions in the sequence
     seq_start = tl.load(Offsets + off_b)
     seq_end = tl.load(Offsets + off_b + 1)
     seq_len = seq_end - seq_start

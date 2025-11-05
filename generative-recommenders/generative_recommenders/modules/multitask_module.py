@@ -69,14 +69,14 @@ class MultitaskModule(HammerModule):
 
 def _compute_pred_and_logits(
     prediction_module: torch.nn.Module,
-    encoded_user_embeddings: torch.Tensor,
-    item_embeddings: torch.Tensor,
+    encoded_user_embeddings: torch.Tensor, # D
+    item_embeddings: torch.Tensor, # N, D
     task_offsets: List[int],
     has_multiple_task_types: bool,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     mt_logits = prediction_module(encoded_user_embeddings * item_embeddings).transpose(
         0, 1
-    )
+    ) # N, 1 -> 1, N
     mt_preds_list: List[torch.Tensor] = []
     for task_type in MultitaskTaskType:
         if task_offsets[task_type + 1] - task_offsets[task_type] > 0:
@@ -97,7 +97,7 @@ def _compute_pred_and_logits(
                     )
                 )
     if has_multiple_task_types:
-        mt_preds: torch.Tensor = torch.concat(mt_preds_list, dim=0)
+        mt_preds: torch.Tensor = torch.concat(mt_preds_list, dim=0) # 1, N
     else:
         mt_preds: torch.Tensor = mt_preds_list[0]
 
@@ -182,9 +182,9 @@ def _compute_loss(
                 )
 
     if has_multiple_task_types:
-        mt_losses = torch.concat(mt_losses_list, dim=0)
+        mt_losses = torch.concat(mt_losses_list, dim=0) # 1, N
     else:
-        mt_losses = mt_losses_list[0]
+        mt_losses = mt_losses_list[0] 
     mt_losses = (
         mt_losses.sum(-1) / mt_weights.sum(-1).clamp(min=1.0) * causal_multitask_weights
     )

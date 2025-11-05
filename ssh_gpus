@@ -1,0 +1,5 @@
+ssh -p 36276 root@connect.cqa1.seetacloud.com
+U0A3H4NEvmGc
+scp -r -P 36276 utils.py root@connect.cqa1.seetacloud.com:/root/generative-recommenders/generative_recommenders/dlrm_v3
+scp -P 36276 root@connect.cqa1.seetacloud.com:/root/generative-recommenders/profiler/*.json .
+scp -P 36276 root@connect.cqa1.seetacloud.com:/root/generative-recommenders/log.txt .
